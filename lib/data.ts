@@ -190,6 +190,8 @@ export const INITIAL_TRIPS: Trip[] = [
     chip: "Selection open",
     img: "/trips/hurghada.jpg",
     pos: "center 62%",
+    place: "Hurghada",
+    region: "Red Sea",
     applicants: [
       a("nour", "accepted", "paid"), a("malak", "accepted", "deposit"),
       a("salma", "accepted", "paid"), a("mariam", "accepted", "paid"),
@@ -213,6 +215,8 @@ export const INITIAL_TRIPS: Trip[] = [
     chip: "Filling up",
     img: "/trips/nuweiba.jpg",
     pos: "center 30%",
+    place: "Nuweiba & Taba",
+    region: "South Sinai",
     applicants: [
       a("hussein", "accepted", "deposit"),
       a("habiba", "pending"), a("adam", "pending"), a("tarek", "pending"), a("aly", "pending"),
@@ -229,6 +233,8 @@ export const INITIAL_TRIPS: Trip[] = [
     chip: "Announced yesterday",
     img: "/trips/rasmo.jpg",
     pos: "center 40%",
+    place: "Ras Mohamed",
+    region: "Sharm el-Sheikh",
     applicants: [a("jana", "pending"), a("adam", "pending"), a("mostafa", "pending")],
   },
 ];

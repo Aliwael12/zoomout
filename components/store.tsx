@@ -44,9 +44,17 @@ export interface DrawerTarget {
   tripId: string | null;
 }
 
+export interface NewApplication {
+  name: string;
+  handle: string;
+  tripId: string;
+}
+
 interface StoreValue {
   trips: Trip[];
   people: Record<string, Person>;
+  /** Anyone who applied from the landing page this session, newest first. */
+  newcomers: string[];
   toast: ToastState | null;
   drawer: DrawerTarget | null;
   setStatus: (tripId: string, pid: string, next: Status) => void;
@@ -54,17 +62,31 @@ interface StoreValue {
   setPayment: (tripId: string, pid: string, payment: Payment) => void;
   setRating: (pid: string, rating: number) => void;
   setNotes: (pid: string, notes: string) => void;
+  /** An existing member applies to a trip from the member area. */
+  apply: (tripId: string, pid: string) => void;
+  /** A stranger applies from the public landing page. Returns the new pid. */
+  applyNew: (input: NewApplication) => string;
   openDrawer: (target: DrawerTarget) => void;
   closeDrawer: () => void;
   showToast: (msg: ReactNode, undoable?: boolean) => void;
   dismissToast: () => void;
 }
 
+const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+const addApplicant = (trips: Trip[], tripId: string, pid: string): Trip[] =>
+  trips.map((t) =>
+    t.id === tripId && !t.applicants.some((a) => a.pid === pid)
+      ? { ...t, applicants: [...t.applicants, { pid, status: "pending", payment: "none" }] }
+      : t,
+  );
+
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
   const [people, setPeople] = useState<Record<string, Person>>(PEOPLE);
+  const [newcomers, setNewcomers] = useState<string[]>([]);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
   const lastAction = useRef<{ tripId: string; pid: string; prev: Status } | null>(null);
@@ -151,16 +173,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setPeople((prev) => ({ ...prev, [pid]: { ...prev[pid], notes } }));
   }, []);
 
+  const apply = useCallback((tripId: string, pid: string) => {
+    setTrips((prev) => addApplicant(prev, tripId, pid));
+  }, []);
+
+  const applyNew = useCallback(
+    ({ name, handle, tripId }: NewApplication) => {
+      const clean = name.trim().replace(/\s+/g, " ");
+      const base = slugify(clean.split(" ")[0]) || "traveler";
+      let pid = base;
+      for (let n = 2; people[pid]; n++) pid = `${base}${n}`;
+
+      const at = handle.trim().replace(/^@+/, "");
+      setPeople((prev) => ({
+        ...prev,
+        [pid]: {
+          name: clean,
+          handle: at ? `@${at}` : "@pending",
+          tier: "new",
+          tripsCount: 0,
+          joined: "2026",
+          source: "Trip form · Instagram bio",
+          rating: 0,
+          notes: "",
+          referredBy: null,
+          tripLog: [],
+          referrals: [],
+        },
+      }));
+      setTrips((prev) => addApplicant(prev, tripId, pid));
+      setNewcomers((prev) => [pid, ...prev]);
+      return pid;
+    },
+    [people],
+  );
+
   const openDrawer = useCallback((target: DrawerTarget) => setDrawer(target), []);
   const closeDrawer = useCallback(() => setDrawer(null), []);
 
   const value = useMemo<StoreValue>(
     () => ({
-      trips, people, toast, drawer,
-      setStatus, undo, setPayment, setRating, setNotes,
+      trips, people, newcomers, toast, drawer,
+      setStatus, undo, setPayment, setRating, setNotes, apply, applyNew,
       openDrawer, closeDrawer, showToast, dismissToast,
     }),
-    [trips, people, toast, drawer, setStatus, undo, setPayment, setRating, setNotes, openDrawer, closeDrawer, showToast, dismissToast],
+    [trips, people, newcomers, toast, drawer, setStatus, undo, setPayment, setRating, setNotes, apply, applyNew, openDrawer, closeDrawer, showToast, dismissToast],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

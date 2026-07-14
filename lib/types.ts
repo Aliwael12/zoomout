@@ -44,6 +44,9 @@ export interface Trip {
   chip: string;
   img: string;
   pos: string;
+  /** Shown on the public trip cards: "Hurghada" / "Red Sea". */
+  place: string;
+  region: string;
   applicants: Applicant[];
 }
 
